@@ -5,5 +5,6 @@ Kelompok Yang Penting A
 
 Ketua Kelompok:  
 Anggota 1: Amira Syafika Pohan - 23/514788/TK/56518
-Anggota 2:  
+Anggota 2: Aurellya Ratna Dewanti - 23/517176/TK/56870
+
 
