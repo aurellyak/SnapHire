@@ -4,6 +4,6 @@ Sistem Human Resource automation berbasis AI yang  mampu mendukung proses screen
 Kelompok Yang Penting A
 
 Ketua Kelompok:  
-Anggota 1:  
+Anggota 1: Amira Syafika Pohan - 23/514788/TK/56518
 Anggota 2:  
 
