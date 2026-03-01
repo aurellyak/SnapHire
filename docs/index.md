@@ -30,8 +30,6 @@ Kami mengembangkan sistem rekrutmen berbasis AI dengan fitur-fitur sebagai berik
 | **Rekomendasi** | Memberikan saran kandidat yang paling sesuai dengan kriteria lowongan. |
 | **Tracking Proses** | Informasi status rekrutmen bagi HR maupun peserta. |
 
----
-
 ### Analisis Kompetitor
 Berikut adalah perbandingan SnapHire dengan beberapa platform rekrutmen yang sudah ada:
 
