@@ -58,6 +58,7 @@ Berikut adalah perbandingan SnapHire dengan beberapa platform rekrutmen yang sud
 4. Membantu pengambilan keputusan rekrutmen yang lebih cepat dan objektif.
 
 **B. Pengguna Potensial dari Produk dan Kebutuhan para Pengguna Tersebut**
+
 | Pengguna | Kebutuhan Utama |
 | :--- | :--- |
 | **Admin** | Mengelola akun HR Staff, mengatur hak akses pengguna, memastikan sistem berjalan dengan baik, serta memonitor data dan aktivitas rekrutmen. |
@@ -69,6 +70,7 @@ Berikut adalah perbandingan SnapHire dengan beberapa platform rekrutmen yang sud
 ![Use Case Diagram](assets/use_case_diagram.jpeg)
 
 **D. Functional Requirements untuk Use Case yang telah Dirancang**
+
 | FR | Deskripsi |
 | :--- | :--- |
 | FR-01 | Kandidat dapat melakukan registrasi akun. |
