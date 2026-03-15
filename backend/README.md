@@ -1,64 +1,42 @@
-# SnapHire Backend (FastAPI)
+# SnapHire Backend API
+
+Express.js backend for SnapHire application.
 
 ## Setup
 
-### Create Virtual Environment
+### Install dependencies
 ```bash
-python -m venv venv
+npm install
 ```
 
-### Activate Virtual Environment
+### Environment variables
+Copy `.env` file with required configurations (already included).
 
-**Windows:**
+### Development
 ```bash
-venv\Scripts\activate
+npm run dev
 ```
 
-**macOS/Linux:**
+### Production
 ```bash
-source venv/bin/activate
-```
-
-### Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-## Running the Server
-
-```bash
-python main.py
-```
-
-Or with uvicorn directly:
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+npm run build
+npm start
 ```
 
 ## API Documentation
 
-Once the server is running, visit:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- Base URL: `http://localhost:8000`
+- API Version: `/api/v1`
 
-## Project Structure
+### Endpoints
 
-```
-backend/
-├── app/
-│   ├── core/           # Core configuration
-│   ├── models/         # Database models
-│   ├── routes/         # API endpoints
-│   └── schemas/        # Pydantic schemas
-├── main.py            # Application entry point
-├── requirements.txt   # Python dependencies
-└── .gitignore
-```
+- `GET /` - Welcome message
+- `GET /health` - Health check
 
-## Development
+## Tech Stack
 
-- Use `requirements.txt` for dependency management
-- Follow PEP 8 code style
-- Add new routes in `app/routes/`
-- Add database models in `app/models/`
-- Add Pydantic schemas in `app/schemas/`
+- **Express.js** - Web framework
+- **TypeScript** - Type safety
+- **Supabase** - PostgreSQL database
+- **Azure Storage** - Blob storage for CVs
+- **CORS** - Cross-origin resource sharing
