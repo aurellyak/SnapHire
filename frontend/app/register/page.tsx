@@ -4,26 +4,21 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabase'; // Pastikan path ini sesuai dengan lokasi file supabase.ts kamu
+import { supabase } from '../lib/supabase';
 
 export default function RegisterPage() {
   const router = useRouter();
-  
-  // State management untuk form
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
-  // State untuk UX (loading & error handling)
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault(); // Mencegah reload halaman
+    e.preventDefault();
     setErrorMsg('');
 
-    // Validasi basic di sisi client
     if (password !== confirmPassword) {
       setErrorMsg('Kata sandi dan konfirmasi kata sandi tidak cocok.');
       return;
@@ -32,20 +27,18 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // Pemanggilan API Supabase untuk mendaftarkan user baru
       const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
           data: {
-            full_name: fullName, // Menyimpan nama lengkap di metadata Supabase
+            full_name: fullName,
           }
         }
       });
 
       if (error) throw error;
 
-      // Jika sukses, arahkan ke halaman login
       alert('Registrasi berhasil! Silakan login.');
       router.push('/login');
       
@@ -62,7 +55,11 @@ export default function RegisterPage() {
         
         <div className="hidden md:flex flex-col items-center justify-center w-full">
           <div className="relative w-full max-w-[550px] aspect-square flex items-center justify-center">
-            <Image src="/ilustrasi.png" alt="Ilustrasi Daftar" fill priority className="object-contain" />
+            <Image 
+              src="/ilustrasi.png" 
+              alt="Ilustrasi Daftar" 
+              fill priority 
+              className="object-contain" />
           </div>
         </div>
 
@@ -71,19 +68,23 @@ export default function RegisterPage() {
             
             <div className="flex flex-col items-center mb-8">
               <Link href="/">
-                <Image src="/SmallLogo.png" alt="Logo" width={150} height={40} className="w-auto h-8 mb-3 cursor-pointer" priority />
+                <Image 
+                  src="/SmallLogo.png" 
+                  alt="SnapHire Logo" 
+                  width={150}
+                  height={40} 
+                  className="w-auto h-8 mb-3 cursor-pointer"
+                  priority />
               </Link>
               <p className="text-slate-500 text-sm font-medium">Buat akun Kandidat baru</p>
             </div>
 
-            {/* Error Message UI */}
             {errorMsg && (
               <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl text-center font-medium">
                 {errorMsg}
               </div>
             )}
 
-            {/* Form ditambahkan onSubmit */}
             <form onSubmit={handleRegister} className="flex flex-col gap-5">
               
               <div className="flex flex-col gap-1.5">

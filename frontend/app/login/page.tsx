@@ -20,17 +20,12 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Pemanggilan API Supabase untuk verifikasi kredensial
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
       });
-
       if (error) throw error;
-
-      // Jika berhasil, redirect ke beranda (atau nantinya ke Dashboard Kandidat)
       router.push('/');
-      
     } catch (error: any) {
       setErrorMsg('Email atau kata sandi tidak valid. Silakan coba lagi.');
     } finally {
@@ -53,7 +48,7 @@ export default function LoginPage() {
             
             <div className="flex flex-col items-center mb-8">
               <Link href="/">
-                <Image src="/SmallLogo.png" alt="Logo" width={150} height={40} className="w-auto h-8 mb-3 cursor-pointer" priority />
+                <Image src="/SmallLogo.png" alt="SnapHire Logo" width={150} height={40} className="w-auto h-8 mb-3 cursor-pointer" priority />
               </Link>
               <p className="text-slate-500 text-sm font-medium">Selamat datang kembali</p>
             </div>
