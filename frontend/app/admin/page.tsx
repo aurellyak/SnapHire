@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Users, Briefcase, Bot, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '../lib/supabase';
+import Link from 'next/link';
 
 export default function AdminDashboardPage() {
   const [metrics, setMetrics] = useState({
@@ -82,7 +83,6 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <>
-          {/* METRIC CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm flex flex-col gap-4">
               <span className="text-blue-600 font-bold text-sm md:text-base">Total Kandidat</span>
@@ -117,7 +117,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* CHART AREA */}
           <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm mb-8">
             <h3 className="text-stone-800 font-semibold mb-6">Grafik Tren Pelamar (7 Hari Terakhir)</h3>
             <div className="w-full h-[300px] text-sm">
@@ -139,13 +138,17 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* ACTIVITY LOG TABLE */}
           <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-stone-800 font-semibold flex items-center gap-2">
                 <Activity size={20} className="text-stone-400" />
                 Activity Log
               </h3>
+              <Link 
+                href="/admin/logs" 
+                className="bg-[#1A56DB] hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+                Lihat Semua
+              </Link>
             </div>
 
             <div className="overflow-x-auto">
