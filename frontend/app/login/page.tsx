@@ -25,7 +25,7 @@ export default function LoginPage() {
         password: password,
       });
       if (error) throw error;
-      router.push('/');
+      router.push('/dashboard');
     } catch (error: any) {
       setErrorMsg('Email atau kata sandi tidak valid. Silakan coba lagi.');
     } finally {
