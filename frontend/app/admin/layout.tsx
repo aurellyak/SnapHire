@@ -1,101 +1,118 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Menu, X, FileText, LogOut } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/app/lib/supabase';
+import { LayoutDashboard, Users, Menu, X, FileText, LogOut, Loader2 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.replace('/login'); return; }
+      const { data: userData } = await supabase.from('users').select('role').eq('user_id', session.user.id).maybeSingle();
+      if (userData?.role?.toLowerCase() !== 'admin') { router.replace('/dashboard'); } 
+      else { setIsAuthorized(true); }
+    };
+    checkAdmin();
+  }, [router]);
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMenu = () => setIsMobileMenuOpen(false);
 
+  // FUNGSI NAVIGASI DENGAN HOVER YANG LEBIH TEGAS
   const getMenuClass = (path: string) => {
     const isActive = pathname === path;
-    const baseClass = "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all duration-200";
-    const activeClass = "bg-blue-600 text-white shadow-lg shadow-blue-600/20";
-    const inactiveClass = "text-stone-500 hover:text-stone-800 hover:bg-stone-50";
-
+    const baseClass = "flex items-center gap-3 px-4 py-4 rounded-2xl font-black transition-all duration-200 group";
+    
+    // Warna saat Aktif (Biru Solid)
+    const activeClass = "bg-blue-600 text-white shadow-xl shadow-blue-600/30 scale-[1.02]";
+    
+    // Warna saat TIDAK Aktif (Hover ditingkatkan kontrasnya)
+    const inactiveClass = "text-stone-500 hover:text-blue-600 hover:bg-blue-100/50 hover:pl-6";
+    
     return `${baseClass} ${isActive ? activeClass : inactiveClass}`;
   };
 
+  if (!isAuthorized) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#FFFAF5]">
+        <Loader2 size={40} className="text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen bg-[#FFFAF5] font-sans">
+    <div className="flex min-h-screen bg-[#FFFAF5] font-sans text-stone-900 overflow-hidden">
       
-      {/* MOBILE TOP BAR */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-stone-200 z-30 flex items-center justify-between px-5">
-        <Link href="/" onClick={closeMenu}>
-          <Image src="/SmallLogo.png" alt="snapHire Logo" width={120} height={30} className="h-7 w-auto" priority />
+      {/* MOBILE & TABLET HEADER */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-stone-200 z-[40] flex items-center justify-between px-5 shadow-sm">
+        <Link href="/admin" onClick={closeMenu}>
+          <Image src="/SmallLogo.png" alt="snapHire" width={100} height={25} className="w-auto h-6" priority />
         </Link>
-        <button onClick={toggleMenu} className="text-stone-600 p-2 hover:bg-stone-50 rounded-lg transition-colors">
+        <button onClick={toggleMenu} className="p-2 text-stone-900 bg-stone-50 rounded-xl active:scale-95 transition-all">
           <Menu size={24} />
         </button>
-      </div>
+      </header>
 
       {/* BACKDROP */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-40 md:hidden transition-opacity" onClick={closeMenu}></div>
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[50] lg:hidden" onClick={closeMenu}></div>
       )}
 
       {/* SIDEBAR */}
       <aside className={`
-        fixed md:sticky top-0 h-screen w-[280px] bg-white border-r border-stone-200 flex flex-col shrink-0 z-50 
-        transition-transform duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        fixed lg:sticky top-0 h-screen w-[280px] bg-white border-r border-stone-200 flex flex-col shrink-0 z-[60] 
+        transition-transform duration-500 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* SIDEBAR HEADER */}
-        <div className="p-6 h-16 md:h-[88px] flex items-center justify-between border-b border-stone-100">
-          <Link href="/" onClick={closeMenu}>
-            <Image src="/SmallLogo.png" alt="snapHire Logo" width={140} height={36} className="h-8 w-auto hidden md:block" priority />
-            <Image src="/SmallLogo.png" alt="snapHire Logo" width={120} height={30} className="h-7 w-auto md:hidden" priority />
-          </Link>
-          
-          {/* TOMBOL CLOSE (X) DENGAN HOVER MERAH */}
-          <button 
-            onClick={closeMenu} 
-            className="md:hidden p-2 rounded-xl transition-all duration-200 
-                       text-stone-400 
-                       hover:text-red-600 hover:bg-red-50 
-                       active:text-red-700 active:bg-red-100"
-          >
-            <X size={22} />
+        <div className="p-6 h-20 lg:h-24 flex items-center justify-between border-b border-stone-50">
+          <Image src="/SmallLogo.png" alt="snapHire" width={120} height={30} className="h-8 w-auto" />
+          <button onClick={closeMenu} className="lg:hidden p-2 text-stone-400 hover:text-red-600 transition-colors">
+            <X size={24} />
           </button>
         </div>
         
-        {/* NAVIGATION */}
         <nav className="p-4 flex flex-col gap-2 flex-1 overflow-y-auto">
           <Link href="/admin" onClick={closeMenu} className={getMenuClass('/admin')}>
-            <LayoutDashboard size={20} />
-            Dashboard Admin
+            <LayoutDashboard size={20} /> Dashboard
           </Link>
-
           <Link href="/admin/users" onClick={closeMenu} className={getMenuClass('/admin/users')}>
-            <Users size={20} />
-            User Management
+            <Users size={20} /> User Management
           </Link>
-
           <Link href="/admin/logs" onClick={closeMenu} className={getMenuClass('/admin/logs')}>
-            <FileText size={20} />
-            Activity Logs
+            <FileText size={20} /> Activity Logs
           </Link>
         </nav>
 
-        {/* LOGOUT AT BOTTOM */}
-        <div className="p-4 border-t border-stone-100">
-          <button className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-bold text-stone-500 hover:text-red-600 hover:bg-red-50 transition-all duration-200">
-            <LogOut size={20} />
-            Keluar Sistem
+        {/* LOGOUT BUTTON DENGAN HOVER MERAH TEGAS */}
+        <div className="p-4 border-t border-stone-50">
+          <button 
+            onClick={() => supabase.auth.signOut().then(() => router.push('/login'))}
+            className="group flex items-center gap-3 w-full px-4 py-4 rounded-2xl font-black text-stone-400 hover:text-red-600 hover:bg-red-100 hover:pl-6 transition-all duration-200"
+          >
+            <div className="p-2 bg-stone-50 group-hover:bg-red-100 rounded-lg transition-colors">
+              <LogOut size={20} />
+            </div>
+            <span className="text-medium">Logout</span>
           </button>
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 overflow-y-auto w-full pt-16 md:pt-0">
-        <div className="min-h-full">
-          {children}
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 min-w-0 h-screen flex flex-col relative">
+        <div className="flex-1 overflow-y-auto bg-[#FFFAF5]">
+          <div className="h-16 lg:hidden"></div> 
+          <div className="p-5 md:p-8 lg:p-12 lg:pt-10 max-w-6xl mx-auto w-full">
+            {children}
+          </div>
         </div>
       </main>
       
