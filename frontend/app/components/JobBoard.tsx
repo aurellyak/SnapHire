@@ -1,84 +1,131 @@
-import React from 'react';
-import { Sparkles, UserCircle, Bookmark, ArrowRight } from 'lucide-react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import { MapPin, Briefcase, DollarSign, Clock, Building2, Palette, Code, Database } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+
+interface Job {
+  job_id: string;
+  title: string;
+  location: string;
+  employment_type: string;
+  additional_tag: string;
+  salary_min: number;
+  salary_max: number;
+  department: string;
+}
 
 export default function JobBoard() {
-  return (
-    // Padding kiri-kanan disesuaikan: px-5 di mobile, px-8 di desktop
-    <section className="max-w-7xl mx-auto px-5 md:px-8 py-16">
-      
-      {/* Header Responsif: Stack di mobile (flex-col), Sejajar di desktop (md:flex-row) */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-10">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Peluang Karir Terkini</h2>
-          <p className="text-slate-500">Posisi terbuka di departemen kami.</p>
-        </div>
-        <a href="#" className="text-blue-600 font-semibold text-sm flex items-center gap-1 hover:gap-2 transition-all w-fit">
-          Lihat Semua <ArrowRight size={16} />
-        </a>
-      </div>
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-      <div className="grid md:grid-cols-3 gap-6">
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('status_job', 'open')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
         
-        {/* Card 1 */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col">
-          <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center text-blue-600 mb-6">
-            <Sparkles size={24} />
-          </div>
-          <h3 className="font-bold text-lg mb-1">UI/UX Designer</h3>
-          <p className="text-sm text-slate-500 mb-4">Jakarta, Indonesia</p>
-          <div className="flex gap-2 mb-8">
-            <span className="bg-slate-50 text-slate-600 text-xs font-semibold px-3 py-1 rounded-md">FULL TIME</span>
-            <span className="bg-slate-50 text-slate-600 text-xs font-semibold px-3 py-1 rounded-md">REMOTE</span>
-          </div>
-          <div className="mt-auto flex items-center justify-between">
-            <p className="font-bold text-sm">IDR 12jt - 15jt</p>
-            <button className="text-slate-400 hover:text-blue-600 transition-colors">
-              <Bookmark size={20} />
-            </button>
-          </div>
-        </div>
+        if (data) {
+          setJobs(data);
+        }
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-        {/* Card 2 */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col">
-          <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center text-blue-600 mb-6">
-            <UserCircle size={24} />
-          </div>
-          <h3 className="font-bold text-lg mb-1">Software Engineer</h3>
-          <p className="text-sm text-slate-500 mb-4">Remote</p>
-          <div className="flex gap-2 mb-8">
-            <span className="bg-slate-50 text-slate-600 text-xs font-semibold px-3 py-1 rounded-md">FULLTIME</span>
-            <span className="bg-slate-50 text-slate-600 text-xs font-semibold px-3 py-1 rounded-md">SENIOR</span>
-          </div>
-          <div className="mt-auto flex items-center justify-between">
-            <p className="font-bold text-sm">IDR 25jt - 35jt</p>
-            <button className="text-slate-400 hover:text-blue-600 transition-colors">
-              <Bookmark size={20} />
-            </button>
-          </div>
-        </div>
+    fetchJobs();
+  }, []);
 
-        {/* Card 3 */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow flex flex-col">
-          <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center text-blue-600 mb-6">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-            </svg>
-          </div>
-          <h3 className="font-bold text-lg mb-1">Data Analyst</h3>
-          <p className="text-sm text-slate-500 mb-4">Bandung, Indonesia</p>
-          <div className="flex gap-2 mb-8">
-            <span className="bg-slate-50 text-slate-600 text-xs font-semibold px-3 py-1 rounded-md">CONTRACT</span>
-            <span className="bg-slate-50 text-slate-600 text-xs font-semibold px-3 py-1 rounded-md">JUNIOR</span>
-          </div>
-          <div className="mt-auto flex items-center justify-between">
-            <p className="font-bold text-sm">IDR 8jt - 12jt</p>
-            <button className="text-slate-400 hover:text-blue-600 transition-colors">
-              <Bookmark size={20} />
-            </button>
-          </div>
-        </div>
+  const formatSalary = (amount: number) => {
+    return `${amount / 1000000} Jt`;
+  };
 
+  const getDepartmentIcon = (department: string) => {
+    switch (department.toLowerCase()) {
+      case 'design':
+        return <Palette size={24} />;
+      case 'engineering':
+        return <Code size={24} />;
+      case 'data':
+        return <Database size={24} />;
+      default:
+        return <Building2 size={24} />; 
+    }
+  };
+
+  return (
+    <section className="max-w-7xl mx-auto px-5 md:px-8 py-16">
+      <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">Lowongan Terbaru</h2>
+          <p className="text-slate-500">Temukan posisi yang pas untuk mengembangkan karirmu.</p>
+        </div>
+        <button className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">
+          Lihat Semua Lowongan &rarr;
+        </button>
       </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {jobs.map((job) => (
+            <div key={job.job_id} className="bg-white border border-slate-200 rounded-3xl p-6 hover:shadow-xl hover:shadow-slate-200/50 transition-all hover:-translate-y-1 group">
+              
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  {getDepartmentIcon(job.department)}
+                </div>
+                
+                <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  {job.department}
+                </span>
+              </div>
+
+              <h3 className="text-xl font-bold text-slate-900 mb-3">{job.title}</h3>
+              
+              <div className="flex flex-col gap-3 mb-6">
+                <div className="flex items-center text-slate-500 text-sm gap-2">
+                  <MapPin size={16} className="text-slate-400" />
+                  <span>{job.location}</span>
+                </div>
+                <div className="flex items-center text-slate-500 text-sm gap-2">
+                  <Briefcase size={16} className="text-slate-400" />
+                  <span>{job.employment_type} • {job.additional_tag}</span>
+                </div>
+                <div className="flex items-center text-slate-500 text-sm gap-2">
+                  <DollarSign size={16} className="text-slate-400" />
+                  <span>IDR {formatSalary(job.salary_min)} - {formatSalary(job.salary_max)}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
+                <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
+                  <Clock size={14} /> Baru saja
+                </span>
+                <button className="bg-slate-50 text-blue-600 px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-600 hover:text-white transition-colors">
+                  Lamar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && jobs.length === 0 && (
+        <div className="text-center py-20 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+          <p className="text-slate-500">Belum ada lowongan yang tersedia saat ini.</p>
+        </div>
+      )}
     </section>
   );
 }
