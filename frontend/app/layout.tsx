@@ -20,7 +20,8 @@ export default function RootLayout({
   return (
     <html 
       lang="en"
-      data-arpa="snapHire">
+      data-arpa="snapHire"
+      suppressHydrationWarning>
       <body className={jakartaSans.className}>
         {children}
       </body>
