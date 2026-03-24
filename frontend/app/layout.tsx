@@ -18,7 +18,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html 
+      lang="en"
+      data-arpa="snapHire">
       <body className={jakartaSans.className}>
         {children}
       </body>

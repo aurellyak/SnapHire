@@ -11,7 +11,6 @@ export default function Navbar() {
   return (
     <header className="w-full px-5 md:px-8 py-4 md:py-6 flex items-center justify-between max-w-7xl mx-auto relative z-50">
       
-      {/* Logo */}
       <div className="flex items-center cursor-pointer relative z-50">
         <Link href="/">
           <Image 
