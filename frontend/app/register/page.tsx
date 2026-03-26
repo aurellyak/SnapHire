@@ -27,22 +27,35 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            full_name: fullName,
-          }
+      // Call backend register endpoint (uses service role key - safer)
+      const registerResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/register`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+            name: fullName,
+          }),
         }
-      });
+      );
 
-      if (error) throw error;
+      if (!registerResponse.ok) {
+        const errorData = await registerResponse.json();
+        throw new Error(errorData.message || 'Registrasi gagal');
+      }
+
+      const { data: registerData } = await registerResponse.json();
+      console.log('Registration successful:', registerData);
 
       alert('Registrasi berhasil! Silakan login.');
       router.push('/login');
       
     } catch (error: any) {
+      console.error('Register error:', error);
       setErrorMsg(error.message || 'Terjadi kesalahan saat registrasi.');
     } finally {
       setIsLoading(false);

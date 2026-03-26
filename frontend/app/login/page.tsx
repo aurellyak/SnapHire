@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabase';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
@@ -21,47 +20,44 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. Login ke Auth Supabase
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
+      // Call backend login endpoint
+      const loginResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+          }),
+        }
+      );
 
-      if (authError) throw authError;
+      if (!loginResponse.ok) {
+        const errorData = await loginResponse.json();
+        throw new Error(errorData.message || 'Login gagal');
+      }
 
-      // 2. Ambil data user dari tabel public.users
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role, name')
-        .eq('user_id', authData.user.id)
-        .maybeSingle();
+      const { data: userData } = await loginResponse.json();
+      console.log('Login successful:', userData);
 
-      if (userError) throw userError;
+      // Simpan user data ke localStorage
+      localStorage.setItem('user', JSON.stringify(userData));
 
-      // 3. CATAT KE ACTIVITY LOGS (PENTING!)
-      const { error: logError } = await supabase.from('activity_logs').insert({
-        user_id: authData.user.id,
-        activity: `LOGIN: ${userData?.name || 'User'} masuk sebagai ${userData?.role || 'user'}`
-      });
-
-      // Debugging: Jika log gagal masuk, muncul di console browser
-      if (logError) console.error("Gagal mencatat log:", logError.message);
-
-      // 4. LOGIKA PENGALIHAN (Redirect)
-      const role = userData?.role?.toLowerCase();
-      router.refresh();
-
-      if (role === 'admin') {
+      // Redirect sesuai role
+      if (userData.role === 'admin') {
         router.push('/admin');
-      } else if (role === 'hr') {
+      } else if (userData.role === 'hr') {
         router.push('/hr');
       } else {
         router.push('/dashboard');
       }
 
     } catch (error: any) {
-      console.error("Login Error:", error.message);
-      setErrorMsg('Email atau kata sandi salah. Silakan coba lagi.');
+      console.error('Login Error:', error.message);
+      setErrorMsg(error.message || 'Email atau kata sandi salah. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }

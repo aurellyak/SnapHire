@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { supabaseService } from '../services/supabase';
 import { azureService } from '../services/azure';
+import { authController } from '../controllers/auth.controller';
 
 const router = Router();
 
@@ -37,5 +38,9 @@ router.get('/health/azure', async (req: Request, res: Response) => {
     });
   }
 });
+
+// Auth routes
+router.post('/auth/register', authController.register);
+router.post('/auth/login', authController.login);
 
 export default router;
