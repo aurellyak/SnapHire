@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/app/lib/supabase';
 import { 
   Plus, Search, Edit2, Trash2, 
-  MapPin, Loader2, X, CheckCircle2, Calendar, FileText 
+  MapPin, Loader2, X, CheckCircle2, Calendar, FileText, Sparkles 
 } from 'lucide-react';
 
 export default function KelolaLowongan() {
@@ -26,7 +26,8 @@ export default function KelolaLowongan() {
     salary_min: '',
     salary_max: '',
     description: '',
-    requirement: ''
+    requirement: '',
+    required_skills: '' // Kita simpan sebagai string di state form
   });
 
   const fetchJobs = async () => {
@@ -38,7 +39,7 @@ export default function KelolaLowongan() {
 
   useEffect(() => { fetchJobs(); }, []);
 
-  // --- LOGIKA WARNA (TETAP DI PERTAHANKAN) ---
+  // --- LOGIKA WARNA ---
   const getStatusStyles = (job: any) => {
     const today = new Date().toISOString().split('T')[0];
     const isExpired = job.due_date && job.due_date < today && job.status_job === 'active';
@@ -84,11 +85,17 @@ export default function KelolaLowongan() {
         salary_min: job.salary_min?.toString() || '',
         salary_max: job.salary_max?.toString() || '',
         description: job.description || '',
-        requirement: job.requirement || ''
+        requirement: job.requirement || '',
+        // Join array skill dari DB menjadi string dipisah koma untuk input
+        required_skills: job.required_skills ? job.required_skills.join(', ') : ''
       });
     } else {
       setEditingId(null);
-      setFormData({ title: '', department: '', location: '', work_type: 'On-site', employment_type: 'Full-time', status_job: 'active', due_date: '', salary_min: '', salary_max: '', description: '', requirement: '' });
+      setFormData({ 
+        title: '', department: '', location: '', work_type: 'On-site', 
+        employment_type: 'Full-time', status_job: 'active', due_date: '', 
+        salary_min: '', salary_max: '', description: '', requirement: '', required_skills: '' 
+      });
     }
     setIsModalOpen(true);
   };
@@ -106,7 +113,11 @@ export default function KelolaLowongan() {
         created_by: user.id,
         salary_min: formData.salary_min ? parseInt(formData.salary_min) : null,
         salary_max: formData.salary_max ? parseInt(formData.salary_max) : null,
-        due_date: formData.due_date || null
+        due_date: formData.due_date || null,
+        // Convert string koma ke Array sebelum simpan ke Supabase
+        required_skills: formData.required_skills 
+          ? formData.required_skills.split(',').map(s => s.trim()).filter(s => s !== "") 
+          : []
       };
 
       if (editingId) await supabase.from('jobs').update(payload).eq('job_id', editingId);
@@ -118,10 +129,17 @@ export default function KelolaLowongan() {
     finally { setIsSubmitting(false); }
   };
 
+  const handleDelete = async (id: string) => {
+    if (confirm("Yakin mau hapus lowongan ini?")) {
+      await supabase.from('jobs').delete().eq('job_id', id);
+      fetchJobs();
+    }
+  };
+
   const filteredJobs = jobs.filter(j => j.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto pb-10">
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <div>
@@ -185,7 +203,7 @@ export default function KelolaLowongan() {
                     <td className="px-10 py-8 text-right pr-12">
                       <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => openModal(job)} className="p-3 text-stone-400 hover:text-blue-600 hover:bg-white hover:shadow-md rounded-2xl transition-all"><Edit2 size={18}/></button>
-                        <button onClick={() => { if(confirm("Hapus?")) fetchJobs(); }} className="p-3 text-stone-400 hover:text-red-600 hover:bg-white hover:shadow-md rounded-2xl transition-all"><Trash2 size={18}/></button>
+                        <button onClick={() => handleDelete(job.job_id)} className="p-3 text-stone-400 hover:text-red-600 hover:bg-white hover:shadow-md rounded-2xl transition-all"><Trash2 size={18}/></button>
                       </div>
                     </td>
                   </tr>
@@ -196,7 +214,7 @@ export default function KelolaLowongan() {
         </div>
       </div>
 
-      {/* MODAL (FIXED: SEMUA FITUR ADA) */}
+      {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-end bg-stone-900/60 backdrop-blur-md">
           <div className="w-full max-w-2xl h-full bg-white shadow-2xl animate-in slide-in-from-right duration-500 p-12 overflow-y-auto">
@@ -206,13 +224,26 @@ export default function KelolaLowongan() {
             </div>
 
             <form className="space-y-8 pb-40">
-              {/* Row 1: Judul */}
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Judul Pekerjaan</label>
-                <input required name="title" value={formData.title} onChange={handleChange} className="w-full p-5 bg-stone-50 border border-stone-100 rounded-3xl font-bold" placeholder="e.g. Lead Designer" />
+                <input required name="title" value={formData.title} onChange={handleChange} className="w-full p-5 bg-stone-50 border border-stone-100 rounded-3xl font-bold" placeholder="e.g. Senior Frontend Engineer" />
               </div>
 
-              {/* Row 2: Departemen & Due Date */}
+              {/* NEW: REQUIRED SKILLS SECTION */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                  <Sparkles size={14} /> Required Skills (Pisahkan dengan koma)
+                </label>
+                <input 
+                  name="required_skills" 
+                  value={formData.required_skills} 
+                  onChange={handleChange} 
+                  className="w-full p-5 bg-blue-50/30 border border-blue-100 rounded-3xl font-bold text-blue-900 placeholder:text-blue-200 outline-none focus:border-blue-400 transition-all" 
+                  placeholder="e.g. React, TypeScript, Tailwind CSS, Figma" 
+                />
+                <p className="text-[10px] text-stone-400 italic px-2">Skill ini akan digunakan AI snapHire untuk mencocokkan kandidat secara otomatis.</p>
+              </div>
+
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Departemen</label>
@@ -224,7 +255,6 @@ export default function KelolaLowongan() {
                 </div>
               </div>
 
-              {/* Row 3: Lokasi & Sistem Kerja (Remote/Hybrid) */}
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Lokasi (Kota, Negara)</label>
@@ -232,7 +262,7 @@ export default function KelolaLowongan() {
                 </div>
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Sistem Kerja</label>
-                  <select name="work_type" value={formData.work_type} onChange={handleChange} className="w-full p-5 bg-stone-50 border border-stone-100 rounded-3xl font-bold">
+                  <select name="work_type" value={formData.work_type} onChange={handleChange} className="w-full p-5 bg-stone-50 border border-stone-100 rounded-3xl font-bold outline-none">
                     <option value="On-site">On-site</option>
                     <option value="Remote">Remote</option>
                     <option value="Hybrid">Hybrid</option>
@@ -240,10 +270,9 @@ export default function KelolaLowongan() {
                 </div>
               </div>
 
-              {/* Row 4: Tipe Pekerjaan (Internship/Contract) */}
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest text-stone-600">Tipe Pekerjaan (Employment Type)</label>
-                <select name="employment_type" value={formData.employment_type} onChange={handleChange} className="w-full p-5 bg-stone-50 border border-stone-100 rounded-3xl font-black text-stone-700">
+                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Tipe Pekerjaan</label>
+                <select name="employment_type" value={formData.employment_type} onChange={handleChange} className="w-full p-5 bg-stone-50 border border-stone-100 rounded-3xl font-black text-stone-700 outline-none">
                   <option value="Full-time">Full-time</option>
                   <option value="Part-time">Part-time</option>
                   <option value="Contract">Contract</option>
@@ -251,7 +280,6 @@ export default function KelolaLowongan() {
                 </select>
               </div>
 
-              {/* Row 5: Salary */}
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Gaji Minimal (IDR)</label>
@@ -264,8 +292,8 @@ export default function KelolaLowongan() {
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Deskripsi</label>
-                <textarea rows={4} name="description" value={formData.description} onChange={handleChange} className="w-full p-5 bg-stone-50 border border-stone-100 rounded-3xl" placeholder="Rincian tanggung jawab..." />
+                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Deskripsi Lowongan</label>
+                <textarea rows={4} name="description" value={formData.description} onChange={handleChange} className="w-full p-5 bg-stone-50 border border-stone-100 rounded-3xl outline-none" placeholder="Jelaskan peran ini secara detail..." />
               </div>
 
               {/* ACTION BUTTONS */}
@@ -273,14 +301,14 @@ export default function KelolaLowongan() {
                 <button 
                   type="button" disabled={isSubmitting}
                   onClick={(e) => handleSubmit(e, 'draft')}
-                  className="flex-1 py-5 bg-stone-100 text-stone-600 font-black rounded-3xl hover:bg-stone-200 uppercase text-[12px] tracking-widest flex items-center justify-center gap-2"
+                  className="flex-1 py-5 bg-stone-100 text-stone-600 font-black rounded-3xl hover:bg-stone-200 uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 transition-all"
                 >
                   <FileText size={16} /> Simpan Draft
                 </button>
                 <button 
                   type="button" disabled={isSubmitting}
                   onClick={(e) => handleSubmit(e, 'active')}
-                  className="flex-[2] py-5 bg-blue-600 text-white font-black rounded-[32px] hover:bg-blue-700 shadow-xl shadow-blue-600/30 uppercase text-[12px] tracking-widest flex items-center justify-center gap-2"
+                  className="flex-[2] py-5 bg-blue-600 text-white font-black rounded-[32px] hover:bg-blue-700 shadow-xl shadow-blue-600/30 uppercase text-[12px] tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
                   {isSubmitting ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={16} />}
                   Posting Sekarang
