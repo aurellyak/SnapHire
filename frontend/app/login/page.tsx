@@ -52,7 +52,7 @@ export default function LoginPage() {
       } else if (userData.role === 'hr') {
         router.push('/hr');
       } else {
-        router.push('/dashboard');
+        router.push('/homepage');
       }
 
     } catch (error: any) {
