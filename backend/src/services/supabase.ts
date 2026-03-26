@@ -28,6 +28,30 @@ export const supabaseService = {
     }
   },
 
+  // Select single record from table (using .single())
+  async selectSingle(table: string, filter: Record<string, any>) {
+    try {
+      let query = supabase.from(table).select('*') as any;
+      if (filter) {
+        Object.entries(filter).forEach(([key, value]) => {
+          query = query.eq(key, value);
+        });
+      }
+      const { data, error } = await query.single();
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows found
+          return { success: false, data: null, notFound: true, message: 'No record found' };
+        }
+        throw error;
+      }
+      return { success: true, data };
+    } catch (error) {
+      console.error('Supabase selectSingle error:', error);
+      return { success: false, data: null, message: String(error) };
+    }
+  },
+
   // Select from table
   async select(table: string, filter?: Record<string, any>) {
     try {

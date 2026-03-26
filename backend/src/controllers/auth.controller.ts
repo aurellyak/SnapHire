@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabaseService } from '../services/supabase';
 import { RegisterRequest, UserWithoutPassword } from '../types/index';
+import { hashPassword, comparePassword } from '../utils/password';
 
 export const authController = {
   // Register endpoint
@@ -41,10 +42,14 @@ export const authController = {
 
       // Insert user ke tabel users dengan role "applicant"
       console.log(`[REGISTER] Inserting new user with email ${email}...`);
+      
+      // Hash password sebelum simpan ke database
+      const hashedPassword = await hashPassword(password);
+      
       const newUser = {
         name: name,
         email: email,
-        password: password,
+        password: hashedPassword,
         role: 'applicant',
         is_active: true,
       };
@@ -103,45 +108,44 @@ export const authController = {
 
       // Cari user berdasarkan email
       console.log(`[LOGIN] Checking user with email ${email}...`);
-      const { data: users, success: selectSuccess } = await supabaseService.select(
+      const { data: user, success: selectSuccess, notFound } = await supabaseService.selectSingle(
         'users',
         { email }
       );
 
       if (!selectSuccess) {
-        console.error('[LOGIN] Error checking user');
+        if (notFound) {
+          console.log(`[LOGIN] User with email ${email} not found`);
+          return res.status(400).json({
+            success: false,
+            message: 'User not found',
+          });
+        }
+        console.error('[LOGIN] Error querying user from database');
         return res.status(500).json({
           success: false,
           message: 'Error saat login',
         });
       }
 
-      if (!users || users.length === 0) {
-        console.log(`[LOGIN] User with email ${email} not found`);
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid login credentials',
-        });
-      }
-
-      const user = users[0];
-
-      // Check password (plain text comparison since no bcrypt yet)
+      // Check password menggunakan bcrypt.compare
       console.log(`[LOGIN] Comparing password for user ${email}...`);
-      if (user.password !== password) {
+      const isPasswordValid = await comparePassword(password, user.password);
+      
+      if (!isPasswordValid) {
         console.log(`[LOGIN] Password mismatch for user ${email}`);
-        return res.status(401).json({
+        return res.status(400).json({
           success: false,
-          message: 'Invalid login credentials',
+          message: 'Invalid credentials',
         });
       }
 
       // Check if user is active
       if (!user.is_active) {
         console.log(`[LOGIN] User ${email} is inactive`);
-        return res.status(403).json({
+        return res.status(400).json({
           success: false,
-          message: 'User account is inactive',
+          message: 'User is inactive',
         });
       }
 
