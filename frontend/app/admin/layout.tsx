@@ -13,13 +13,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
+  // 1. UPDATE: useEffect dengan Penanganan Error Sesi (Anti-Crash)
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.replace('/login'); return; }
-      const { data: userData } = await supabase.from('users').select('role').eq('user_id', session.user.id).maybeSingle();
-      if (userData?.role?.toLowerCase() !== 'admin') { router.replace('/dashboard'); } 
-      else { setIsAuthorized(true); }
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        // JIKA ADA ERROR (seperti Invalid Refresh Token) ATAU SESI KOSONG:
+        if (sessionError || !session) {
+          console.warn("Sesi bermasalah atau kosong, membersihkan data...");
+          await supabase.auth.signOut(); // Paksa hapus token yang rusak
+          router.replace('/login'); 
+          return; 
+        }
+
+        // Jika sesi aman, lanjut cek role Admin
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (userData?.role?.toLowerCase() !== 'admin') { 
+          router.replace('/dashboard'); 
+        } else { 
+          setIsAuthorized(true); 
+        }
+      } catch (err) {
+        console.error("Sistem Keamanan Error:", err);
+        await supabase.auth.signOut();
+        router.replace('/login');
+      }
     };
     checkAdmin();
   }, [router]);
@@ -95,7 +119,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* LOGOUT BUTTON DENGAN HOVER MERAH TEGAS */}
         <div className="p-4 border-t border-stone-50">
           <button 
-            onClick={() => supabase.auth.signOut().then(() => router.push('/login'))}
+            onClick={async () => {
+              // Pastikan logout memanggil signOut dulu sebelum redirect
+              await supabase.auth.signOut();
+              router.replace('/login');
+            }}
             className="group flex items-center gap-3 w-full px-4 py-4 rounded-2xl font-black text-stone-400 hover:text-red-600 hover:bg-red-100 hover:pl-6 transition-all duration-200"
           >
             <div className="p-2 bg-stone-50 group-hover:bg-red-100 rounded-lg transition-colors">
