@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -14,6 +14,52 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [hasActiveSession, setHasActiveSession] = useState(false);
+  const [activeUser, setActiveUser] = useState<any>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  // CHECK: Apakah sudah ada session active di localStorage
+  useEffect(() => {
+    const checkExistingSession = () => {
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+
+      if (token && storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          console.log('[LOGIN] ✅ Found active session:', userData.email);
+          setHasActiveSession(true);
+          setActiveUser(userData);
+        } catch (err) {
+          console.log('[LOGIN] Invalid stored user data');
+          setHasActiveSession(false);
+          setActiveUser(null);
+        }
+      }
+      setIsCheckingSession(false);
+    };
+
+    checkExistingSession();
+  }, []);
+
+  // SYNC: Detect logout/login di tab lain
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      // Jika token dihapus/berubah di tab lain, auto refresh page
+      if (event.key === 'token' && !event.newValue) {
+        console.log('[LOGIN] Token dihapus di tab lain, refresh page...');
+        window.location.href = '/login';
+      }
+      // Jika user berubah di tab lain (login user berbeda)
+      if (event.key === 'user' && event.newValue !== event.oldValue) {
+        console.log('[LOGIN] User berbeda login di tab lain, refresh page...');
+        window.location.href = '/login';
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +67,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. Login ke Auth Supabase
+      // 1. Login ke Auth Supabase (dapatkan JWT token)
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -29,16 +75,41 @@ export default function LoginPage() {
 
       if (authError) throw authError;
 
-      // 2. Ambil data user dari tabel public.users
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role, name')
-        .eq('user_id', authData.user.id)
-        .maybeSingle();
+      // 2. Dapatkan JWT session token dari Supabase
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData?.session?.access_token) {
+        throw new Error('Gagal mendapatkan token dari Supabase');
+      }
 
-      if (userError) throw userError;
+      const token = sessionData.session.access_token;
 
-      // 3. CATAT KE ACTIVITY LOGS (PENTING!)
+      // 3. Call backend /login API dengan JWT token
+      // Backend akan verify token dan return user role via middleware
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const response = await fetch(`${backendUrl}/login`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+
+      const loginData = await response.json();
+      const userData = loginData.data;
+
+      // 4. Simpan JWT token ke localStorage untuk API calls berikutnya
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        console.log(`[LOGIN] ✅ Token saved for: ${userData?.email} (${userData?.role})`);
+      }
+
+      // 5. CATAT KE ACTIVITY LOGS (PENTING!)
       const { error: logError } = await supabase.from('activity_logs').insert({
         user_id: authData.user.id,
         activity: `LOGIN: ${userData?.name || 'User'} masuk sebagai ${userData?.role || 'user'}`
@@ -47,7 +118,7 @@ export default function LoginPage() {
       // Debugging: Jika log gagal masuk, muncul di console browser
       if (logError) console.error("Gagal mencatat log:", logError.message);
 
-      // 4. LOGIKA PENGALIHAN (Redirect)
+      // 6. LOGIKA PENGALIHAN (Redirect) berdasarkan role dari backend
       const role = userData?.role?.toLowerCase();
       router.refresh();
 

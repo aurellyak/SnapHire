@@ -3,7 +3,6 @@ import { supabaseService } from '../services/supabase';
 import { azureService } from '../services/azure';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { requireRole, onlyAdmin, onlyHR, onlyApplicant } from '../middleware/roleMiddleware';
-import { auditMiddleware } from '../middleware/auditMiddleware';
 import { AuthRequest, ApiResponse } from '../types';
 
 const router = Router();
@@ -20,6 +19,67 @@ router.get('/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+/**
+ * POST /api/v1/login - Verify Supabase JWT token and return user role
+ * 
+ * This endpoint:
+ * 1. Receives JWT token from frontend (obtained from Supabase auth)
+ * 2. Verifies token using authMiddleware
+ * 3. Queries user role from database
+ * 4. Returns user info with role for proper routing
+ * 
+ * Frontend sends:
+ * - Authorization header: "Bearer <jwt_token>"
+ * 
+ * Backend returns:
+ * - { user_id, email, name, role, created_at }
+ */
+router.post(
+  '/login',
+  authMiddleware,  // Verify JWT token from Supabase
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const userEmail = (req as any).user?.email;
+
+      // Query user role and info from database
+      const result = await supabaseService.select('users', {
+        user_id: userId
+      });
+
+      if (!result.success || !result.data || result.data.length === 0) {
+        console.warn('[LOGIN] User not found in database:', userId);
+        return res.status(404).json({
+          status: 'error',
+          message: 'User not found'
+        });
+      }
+
+      const user = result.data[0];
+      console.log(`[LOGIN] ✅ ${user.name} (${user.role}) logged in successfully`);
+
+      // Return user info with role
+      res.status(200).json({
+        status: 'success',
+        message: 'Login successful',
+        data: {
+          user_id: user.user_id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          created_at: user.created_at
+        }
+      });
+    } catch (error) {
+      console.error('[LOGIN] Error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Login verification failed'
+      });
+    }
+  }
+);
 
 // Test Supabase connection (public)
 router.get('/health/supabase', async (req: Request, res: Response) => {
@@ -61,7 +121,6 @@ router.get('/health/azure', async (req: Request, res: Response) => {
 // GET /api/v1/jobs - List all jobs (any authenticated user bisa akses)
 router.get(
   '/jobs',
-  auditMiddleware,     // Step 1: Log activity
   authMiddleware,      // Step 2: Verify token
   async (req: AuthRequest, res: Response) => {
     try {
@@ -82,7 +141,6 @@ router.get(
 // POST /api/v1/jobs - Create job (only HR or Admin)
 router.post(
   '/jobs',
-  auditMiddleware,            // Step 1: Log activity
   authMiddleware,             // Step 2: Verify token
   requireRole(['admin', 'hr']),  // Step 3: Check role
   async (req: AuthRequest, res: Response) => {
@@ -104,7 +162,6 @@ router.post(
 // DELETE /api/v1/jobs/:id - Delete job (only Admin)
 router.delete(
   '/jobs/:id',
-  auditMiddleware,       // Step 1: Log activity
   authMiddleware,        // Step 2: Verify token
   onlyAdmin,            // Step 3: Check if admin only
   async (req: AuthRequest, res: Response) => {
@@ -128,7 +185,6 @@ router.delete(
 // GET /api/v1/me - Get current user profile (only authenticated users)
 router.get(
   '/me',
-  auditMiddleware,    // Step 1: Log activity
   authMiddleware,     // Step 2: Verify token
   async (req: AuthRequest, res: Response) => {
     try {
@@ -153,7 +209,6 @@ router.get(
 // POST /api/v1/applications - Apply for job (only applicants)
 router.post(
   '/applications',
-  auditMiddleware,        // Step 1: Log activity
   authMiddleware,         // Step 2: Verify token
   onlyApplicant,         // Step 3: Check if applicant only
   async (req: AuthRequest, res: Response) => {

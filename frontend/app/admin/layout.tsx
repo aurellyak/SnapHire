@@ -13,21 +13,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-  // 1. UPDATE: useEffect dengan Penanganan Error Sesi (Anti-Crash)
+  // 1. OPTIMIZED: Check localStorage first (instant), then verify with backend if needed
   useEffect(() => {
     const checkAdmin = async () => {
       try {
+        // PRIORITY 1: Check localStorage (instant, dari login UI sebelumnya)
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            if (userData?.role?.toLowerCase() === 'admin') {
+              console.log('[ADMIN] ✅ Authorized via localStorage');
+              setIsAuthorized(true);
+              return; // CEPAT! Tidak ada query database
+            } else {
+              console.log('[ADMIN] ❌ Role bukan admin, redirect to dashboard');
+              router.replace('/dashboard');
+              return;
+            }
+          } catch (e) {
+            console.warn('[ADMIN] Stored user data invalid, checking session...');
+          }
+        }
+
+        // PRIORITY 2: Jika localStorage kosong/invalid, verify dengan session & database
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        // JIKA ADA ERROR (seperti Invalid Refresh Token) ATAU SESI KOSONG:
         if (sessionError || !session) {
-          console.warn("Sesi bermasalah atau kosong, membersihkan data...");
-          await supabase.auth.signOut(); // Paksa hapus token yang rusak
+          console.warn('[ADMIN] Session invalid, clearing auth...');
+          await supabase.auth.signOut();
           router.replace('/login'); 
           return; 
         }
 
-        // Jika sesi aman, lanjut cek role Admin
+        // Query database untuk cek role (jika localStorage kosong)
         const { data: userData } = await supabase
           .from('users')
           .select('role')
@@ -35,12 +54,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .maybeSingle();
 
         if (userData?.role?.toLowerCase() !== 'admin') { 
+          console.log('[ADMIN] ❌ Database: Role bukan admin');
           router.replace('/dashboard'); 
         } else { 
+          console.log('[ADMIN] ✅ Authorized via database');
           setIsAuthorized(true); 
         }
       } catch (err) {
-        console.error("Sistem Keamanan Error:", err);
+        console.error('[ADMIN] Security check error:', err);
         await supabase.auth.signOut();
         router.replace('/login');
       }
@@ -120,7 +141,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-4 border-t border-stone-50">
           <button 
             onClick={async () => {
-              // Pastikan logout memanggil signOut dulu sebelum redirect
+              // Clear localStorage dulu sebelum logout
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+              }
+              // Kemudian logout dari Supabase
               await supabase.auth.signOut();
               router.replace('/login');
             }}
