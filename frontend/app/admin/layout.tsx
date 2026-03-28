@@ -13,21 +13,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-  // 1. OPTIMIZED: Check localStorage first (instant), then verify with backend if needed
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        // PRIORITY 1: Check localStorage (instant, dari login UI sebelumnya)
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           try {
             const userData = JSON.parse(storedUser);
             if (userData?.role?.toLowerCase() === 'admin') {
-              console.log('[ADMIN] ✅ Authorized via localStorage');
+              console.log('[ADMIN] Authorized via localStorage');
               setIsAuthorized(true);
-              return; // CEPAT! Tidak ada query database
+              return; 
             } else {
-              console.log('[ADMIN] ❌ Role bukan admin, redirect to dashboard');
+              console.log('[ADMIN] Role bukan admin, redirect to dashboard');
               router.replace('/dashboard');
               return;
             }
@@ -36,7 +34,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           }
         }
 
-        // PRIORITY 2: Jika localStorage kosong/invalid, verify dengan session & database
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session) {
@@ -46,7 +43,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           return; 
         }
 
-        // Query database untuk cek role (jika localStorage kosong)
+        // Query database untuk cek role 
         const { data: userData } = await supabase
           .from('users')
           .select('role')
@@ -54,10 +51,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .maybeSingle();
 
         if (userData?.role?.toLowerCase() !== 'admin') { 
-          console.log('[ADMIN] ❌ Database: Role bukan admin');
+          console.log('[ADMIN] Database: Role bukan admin');
           router.replace('/dashboard'); 
         } else { 
-          console.log('[ADMIN] ✅ Authorized via database');
+          console.log('[ADMIN] Authorized via database');
           setIsAuthorized(true); 
         }
       } catch (err) {
@@ -72,7 +69,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMenu = () => setIsMobileMenuOpen(false);
 
-  // FUNGSI NAVIGASI DENGAN HOVER YANG LEBIH TEGAS
   const getMenuClass = (path: string) => {
     const isActive = pathname === path;
     const baseClass = "flex items-center gap-3 px-4 py-4 rounded-2xl font-black transition-all duration-200 group";
@@ -146,7 +142,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
               }
-              // Kemudian logout dari Supabase
+              // logout dari Supabase
               await supabase.auth.signOut();
               router.replace('/login');
             }}
