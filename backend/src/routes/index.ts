@@ -7,43 +7,13 @@ import { AuthRequest, ApiResponse } from '../types';
 
 const router = Router();
 
-/**
- * ==================== PUBLIC ROUTES ====================
- * Tidak perlu authentication
- */
-
-// Health check endpoint (public)
-router.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-/**
- * POST /api/v1/login - Verify Supabase JWT token and return user role
- * 
- * This endpoint:
- * 1. Receives JWT token from frontend (obtained from Supabase auth)
- * 2. Verifies token using authMiddleware
- * 3. Queries user role from database
- * 4. Returns user info with role for proper routing
- * 
- * Frontend sends:
- * - Authorization header: "Bearer <jwt_token>"
- * 
- * Backend returns:
- * - { user_id, email, name, role, created_at }
- */
 router.post(
   '/login',
-  authMiddleware,  // Verify JWT token from Supabase
+  authMiddleware,  
   async (req: AuthRequest, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const userEmail = (req as any).user?.email;
-
-      // Query user role and info from database
       const result = await supabaseService.select('users', {
         user_id: userId
       });
@@ -57,9 +27,8 @@ router.post(
       }
 
       const user = result.data[0];
-      console.log(`[LOGIN] ✅ ${user.name} (${user.role}) logged in successfully`);
+      console.log(`[LOGIN] ${user.name} (${user.role}) logged in successfully`);
 
-      // Return user info with role
       res.status(200).json({
         status: 'success',
         message: 'Login successful',
@@ -81,47 +50,10 @@ router.post(
   }
 );
 
-// Test Supabase connection (public)
-router.get('/health/supabase', async (req: Request, res: Response) => {
-  try {
-    const result = await supabaseService.testConnection();
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: String(error),
-    });
-  }
-});
 
-// Test Azure Storage connection (public)
-router.get('/health/azure', async (req: Request, res: Response) => {
-  try {
-    const result = await azureService.testConnection();
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: String(error),
-    });
-  }
-});
-
-/**
- * ==================== PROTECTED ROUTES ====================
- * Semua route di bawah ini memerlukan:
- * 1. authMiddleware - Verify JWT token
- * 2. (Optional) requireRole/roleMiddleware - Check user role
- * 3. auditMiddleware - Log activity
- */
-
-/**
- * Example: Jobs routes
- */
-// GET /api/v1/jobs - List all jobs (any authenticated user bisa akses)
 router.get(
   '/jobs',
-  authMiddleware,      // Step 2: Verify token
+  authMiddleware,      
   async (req: AuthRequest, res: Response) => {
     try {
       res.status(200).json({
@@ -138,11 +70,10 @@ router.get(
   }
 );
 
-// POST /api/v1/jobs - Create job (only HR or Admin)
 router.post(
   '/jobs',
-  authMiddleware,             // Step 2: Verify token
-  requireRole(['admin', 'hr']),  // Step 3: Check role
+  authMiddleware,           
+  requireRole(['admin', 'hr']),  
   async (req: AuthRequest, res: Response) => {
     try {
       res.status(201).json({
@@ -159,11 +90,10 @@ router.post(
   }
 );
 
-// DELETE /api/v1/jobs/:id - Delete job (only Admin)
 router.delete(
   '/jobs/:id',
-  authMiddleware,        // Step 2: Verify token
-  onlyAdmin,            // Step 3: Check if admin only
+  authMiddleware,       
+  onlyAdmin,         
   async (req: AuthRequest, res: Response) => {
     try {
       res.status(200).json({
@@ -179,13 +109,9 @@ router.delete(
   }
 );
 
-/**
- * Example: Candidate/Application routes
- */
-// GET /api/v1/me - Get current user profile (only authenticated users)
 router.get(
   '/me',
-  authMiddleware,     // Step 2: Verify token
+  authMiddleware,    
   async (req: AuthRequest, res: Response) => {
     try {
       res.status(200).json({
@@ -206,11 +132,10 @@ router.get(
   }
 );
 
-// POST /api/v1/applications - Apply for job (only applicants)
 router.post(
   '/applications',
-  authMiddleware,         // Step 2: Verify token
-  onlyApplicant,         // Step 3: Check if applicant only
+  authMiddleware,        
+  onlyApplicant,    
   async (req: AuthRequest, res: Response) => {
     try {
       res.status(201).json({

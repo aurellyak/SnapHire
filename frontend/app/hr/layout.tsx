@@ -14,22 +14,21 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [hrName, setHrName] = useState("HR Name");
 
-  // OPTIMIZED: Check localStorage first (instant), then verify with backend if needed
+  // Check localStorage first 
   useEffect(() => {
     const checkHR = async () => {
       try {
-        // PRIORITY 1: Check localStorage (instant, dari login UI sebelumnya)
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           try {
             const userData = JSON.parse(storedUser);
             if (userData?.role?.toLowerCase() === 'hr') {
-              console.log('[HR] ✅ Authorized via localStorage');
+              console.log('[HR] Authorized via localStorage');
               setHrName(userData.name || 'HR snapHire');
               setIsAuthorized(true);
-              return; // CEPAT! Tidak ada query database
+              return; 
             } else {
-              console.log('[HR] ❌ Role bukan HR, redirect to dashboard');
+              console.log('[HR] Role bukan HR, redirect to dashboard');
               router.replace('/dashboard');
               return;
             }
@@ -38,7 +37,6 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // PRIORITY 2: Jika localStorage kosong/invalid, verify dengan session & database
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session) {
           console.warn('[HR] Session invalid, clearing auth...');
@@ -47,7 +45,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
           return; 
         }
 
-        // Query database untuk cek role & nama (jika localStorage kosong)
+        // Query database untuk cek role & nama 
         const { data: userData } = await supabase
           .from('users')
           .select('role, name')
@@ -55,10 +53,10 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
           .maybeSingle();
 
         if (userData?.role?.toLowerCase() !== 'hr') { 
-          console.log('[HR] ❌ Database: Role bukan HR');
+          console.log('[HR] Database: Role bukan HR');
           router.replace('/dashboard'); 
         } else { 
-          console.log('[HR] ✅ Authorized via database');
+          console.log('[HR] Authorized via database');
           setHrName(userData.name || 'HR snapHire');
           setIsAuthorized(true); 
         }

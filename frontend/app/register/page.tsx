@@ -27,7 +27,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // 1. Signup ke Supabase Auth
+      // Signup ke Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
@@ -40,7 +40,7 @@ export default function RegisterPage() {
 
       if (error) throw error;
 
-      // 2. Catat ke Activity Logs setelah signup berhasil
+      // Catat ke Activity Logs setelah signup berhasil
       const userId = data.user?.id;
       if (userId) {
         const { error: logError } = await supabase
@@ -50,11 +50,11 @@ export default function RegisterPage() {
             activity: `SYSTEM: Akun user telah dibuat (${fullName})`
           });
 
-        // Log error jika insert gagal (tapi jangan hentikan proses)
+        // Log error jika insert gagal 
         if (logError) {
           console.warn('Gagal mencatat activity log:', logError.message);
         } else {
-          console.log('[REGISTER] ✅ Activity log recorded for new user:', email);
+          console.log('[REGISTER] Activity log recorded for new user:', email);
         }
       }
 

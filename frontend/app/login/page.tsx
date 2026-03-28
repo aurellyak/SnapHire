@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [activeUser, setActiveUser] = useState<any>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-  // CHECK: Apakah sudah ada session active di localStorage
+  // check session di LocalStorage 
   useEffect(() => {
     const checkExistingSession = () => {
       const token = localStorage.getItem('token');
@@ -42,7 +42,7 @@ export default function LoginPage() {
     checkExistingSession();
   }, []);
 
-  // SYNC: Detect logout/login di tab lain
+  // Detect logout/login di tab lain
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       // Jika token dihapus/berubah di tab lain, auto refresh page
@@ -67,7 +67,6 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. Login ke Auth Supabase (dapatkan JWT token)
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -75,7 +74,6 @@ export default function LoginPage() {
 
       if (authError) throw authError;
 
-      // 2. Dapatkan JWT session token dari Supabase
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !sessionData?.session?.access_token) {
         throw new Error('Gagal mendapatkan token dari Supabase');
@@ -83,7 +81,6 @@ export default function LoginPage() {
 
       const token = sessionData.session.access_token;
 
-      // 3. Call backend /login API dengan JWT token
       // Backend akan verify token dan return user role via middleware
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
       const response = await fetch(`${backendUrl}/login`, {
@@ -102,23 +99,20 @@ export default function LoginPage() {
       const loginData = await response.json();
       const userData = loginData.data;
 
-      // 4. Simpan JWT token ke localStorage untuk API calls berikutnya
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
         console.log(`[LOGIN] ✅ Token saved for: ${userData?.email} (${userData?.role})`);
       }
 
-      // 5. CATAT KE ACTIVITY LOGS (PENTING!)
+      // catat activity log login
       const { error: logError } = await supabase.from('activity_logs').insert({
         user_id: authData.user.id,
         activity: `LOGIN: ${userData?.name || 'User'} masuk sebagai ${userData?.role || 'user'}`
       });
 
-      // Debugging: Jika log gagal masuk, muncul di console browser
       if (logError) console.error("Gagal mencatat log:", logError.message);
 
-      // 6. LOGIKA PENGALIHAN (Redirect) berdasarkan role dari backend
       const role = userData?.role?.toLowerCase();
       router.refresh();
 
@@ -146,7 +140,7 @@ export default function LoginPage() {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
-      // Kemudian logout dari Supabase
+      // logout dari Supabase
       await supabase.auth.signOut();
       console.log('[LOGIN] ✅ Session cleared');
       setHasActiveSession(false);
@@ -160,7 +154,7 @@ export default function LoginPage() {
     }
   };
 
-  // LOADING STATE saat check session
+  // loading state
   if (isCheckingSession) {
     return (
       <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center">
@@ -172,7 +166,7 @@ export default function LoginPage() {
     );
   }
 
-  // VIEW 1: Sudah ada session active
+  // tampilan saat ada session active
   if (hasActiveSession && activeUser) {
     return (
       <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-4 md:p-8 font-sans">
@@ -238,7 +232,7 @@ export default function LoginPage() {
     );
   }
 
-  // VIEW 2: Belum ada session, tampilkan form login
+  // view saat belum ada session, tampilkan form login
   return (
     <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-4 md:p-8 font-sans">
       <div className="max-w-6xl w-full grid md:grid-cols-2 gap-12 items-center">
