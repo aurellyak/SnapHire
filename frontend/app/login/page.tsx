@@ -131,13 +131,114 @@ export default function LoginPage() {
       }
 
     } catch (error: any) {
-      console.error("Login Error:", error.message);
-      setErrorMsg('Email atau kata sandi salah. Silakan coba lagi.');
+      console.error('[REGISTER] Error:', error.message);
+      setErrorMsg(error.message || 'Terjadi kesalahan saat registrasi.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleLogout = async () => {
+    setIsLoading(true);
+    try {
+      // Clear localStorage dulu
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      // Kemudian logout dari Supabase
+      await supabase.auth.signOut();
+      console.log('[LOGIN] ✅ Session cleared');
+      setHasActiveSession(false);
+      setActiveUser(null);
+      setEmail('');
+      setPassword('');
+    } catch (error) {
+      console.error('[LOGIN] Logout error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // LOADING STATE saat check session
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-stone-600 font-medium">Checking session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // VIEW 1: Sudah ada session active
+  if (hasActiveSession && activeUser) {
+    return (
+      <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-4 md:p-8 font-sans">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-blue-900/5 border border-white p-8 sm:p-10">
+            
+            <div className="flex flex-col items-center mb-10 text-center">
+              <Link href="/">
+                <Image src="/SmallLogo.png" alt="Logo" width={150} height={40} className="w-auto h-9 mb-4" priority />
+              </Link>
+              <h1 className="text-xl font-black text-stone-900 tracking-tight">Session Aktif</h1>
+              <div className="h-1.5 w-10 bg-blue-600 rounded-full mt-3"></div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  {activeUser.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div className="text-left">
+                  <p className="font-black text-stone-900">{activeUser.name}</p>
+                  <p className="text-sm text-stone-600">{activeUser.email}</p>
+                </div>
+              </div>
+              <div className="px-3 py-1.5 bg-blue-600 text-white rounded-full inline-block text-xs font-bold">
+                {activeUser.role?.toUpperCase()}
+              </div>
+            </div>
+
+            <p className="text-center text-sm text-stone-600 mb-6">
+              Anda sedang login dengan akun <span className="font-black">{activeUser.name}</span>. 
+              <br />
+              <span className="text-xs">Untuk login dengan akun berbeda, silakan logout terlebih dahulu.</span>
+            </p>
+
+            <button 
+              onClick={() => {
+                const role = activeUser.role?.toLowerCase();
+                if (role === 'admin') {
+                  router.push('/admin');
+                } else if (role === 'hr') {
+                  router.push('/hr');
+                } else {
+                  router.push('/dashboard');
+                }
+              }}
+              disabled={isLoading}
+              className="w-full bg-blue-600 text-white font-black py-3.5 rounded-2xl hover:bg-blue-700 transition-all mb-3 shadow-xl shadow-blue-600/25"
+            >
+              Lanjutkan sebagai {activeUser.name}
+            </button>
+
+            <button 
+              onClick={handleLogout}
+              disabled={isLoading}
+              className="w-full bg-red-50 text-red-600 font-bold py-3.5 rounded-2xl hover:bg-red-100 transition-all border border-red-200"
+            >
+              {isLoading ? 'Logout...' : 'Logout & Login Akun Lain'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // VIEW 2: Belum ada session, tampilkan form login
   return (
     <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-4 md:p-8 font-sans">
       <div className="max-w-6xl w-full grid md:grid-cols-2 gap-12 items-center">
